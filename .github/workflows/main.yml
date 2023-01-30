@@ -20,5 +20,8 @@ jobs:
     - name: Publish .NET Core Project
       run: dotnet publish "Simple Showcase.csproj" -c Release -o release --nologo
 
+    - name: Upload GitHub Pages artifact
+      uses: actions/upload-pages-artifact@v1.0.7
+
     - name: Deploy GitHub Pages site
       uses: actions/deploy-pages@v1.2.3
