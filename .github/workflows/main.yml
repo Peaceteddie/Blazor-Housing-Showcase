@@ -9,17 +9,17 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-                uses: actions/checkout@v3.3.0
+              uses: actions/checkout@v3.3.0
 
             - name: Publish application
-                run: dotnet publish -c Release
+              run: dotnet publish -c Release
 
             - name: Add .nojekyll file
-                run: touch release/wwwroot/.nojekyll
+              run: touch release/wwwroot/.nojekyll
 
             - name: Commit wwwroot to GitHub pages
-                uses: JamesIves/github-pages-deploy-action@3.7.1
-                with:
-                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                    BRANCH: gh-pages
-                    FOLDER: release/wwwroot
+              uses: JamesIves/github-pages-deploy-action@3.7.1
+              with:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                BRANCH: gh-pages
+                FOLDER: release/wwwroot
