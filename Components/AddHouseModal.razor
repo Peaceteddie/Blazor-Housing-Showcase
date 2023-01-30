@@ -1,0 +1,95 @@
+﻿@using Simple_Showcase.Data;
+@inject IJSRuntime JS
+
+<div class="modal" tabindex="-1" @onkeyup="HandleKeypress" style="display:@ModalDisplay">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+
+			@*Header*@
+			<div class="modal-header">
+				<h5 class="modal-title">Add House</h5>
+			</div>
+
+			@*Body*@
+			<div class="modal-body">
+				<form class="container">
+					<label class="row">
+						<span class="col">Adress:</span>
+						<input @ref="FirstField" @bind="@adress" @onkeypress="HandleKeypress" class="col" type="text" />
+					</label>
+					<label class="row">
+						<span class="col">Rooms:</span>
+						<input @bind="@rooms" @onkeypress="HandleKeypress" class="col col-3" type="number" />
+					</label>
+					<label class="row">
+						<span class="col">Floor Area:</span>
+						<input @bind="@area" @onkeypress="HandleKeypress" class="col col-3" type="number" />
+					</label>
+				</form>
+			</div>
+
+			@*Footer*@
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" @onclick="() => Close()">Close</button>
+				<button type="submit" class="btn btn-primary" @onclick:preventDefault @onclick="() => Save()">Save changes</button>
+			</div>
+
+		</div>
+	</div>
+</div>
+
+<div class="modal-backdrop fade show" style="display:@ModalDisplay" />
+
+@code {
+	int area { get; set; } = 0;
+	int rooms { get; set; } = 0;
+	string adress { get; set; } = "";
+
+	string ModalDisplay = "none;";
+
+	bool isOpen => ModalDisplay == "none;" ? false : true;
+
+	ElementReference FirstField { get; set; }
+
+	public void Open()
+	{
+		ModalDisplay = "block;";
+		StateHasChanged();
+	}
+
+	void Save()
+	{
+		if (adress == "") { Alert("Adress can't be empty"); return; }
+		if (rooms == 0) { Alert("Rooms can't be 0"); return; }
+		if (area == 0) { Alert("Area can't be 0."); return; }
+
+		using var context = new HousingContext();
+		context.AddHouse(adress, rooms, area);
+		context.SaveChanges();
+		Close();
+	}
+
+	public void Close()
+	{
+		area = 0;
+		rooms = 0;
+		adress = "";
+
+		ModalDisplay = "none;";
+		StateHasChanged();
+	}
+
+	async Task HandleKeypress(KeyboardEventArgs e)
+	{
+		if (e.Key == "Enter") Save();
+		if (e.Key == "Escape") Close();
+	}
+
+	protected override Task OnAfterRenderAsync(bool firstRender)
+	{
+		FirstField.FocusAsync();
+		return base.OnAfterRenderAsync(firstRender);
+	}
+
+	async void Alert(string message) => await JS.InvokeVoidAsync("alert", message);
+}

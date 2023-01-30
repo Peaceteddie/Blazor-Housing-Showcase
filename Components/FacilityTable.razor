@@ -1,0 +1,54 @@
+﻿@using Simple_Showcase.Data;
+
+<div class="@(Class == "" ? defaultBase : Class)" style="min-width:50vh;@Style">
+	<div class="d-inline-flex gap-2">
+		<p class="m-2 text-center">@pageCount</p>
+		<button @onclick="()=>pageCount++">Increase</button>
+		<button @onclick="()=>pageCount--">Decrease</button>
+	</div>
+	<div class="container d-flex flex-wrap gap-5 justify-content-center p-5">
+		@if (Houses.Count > 0)
+		{
+			foreach (var house in SelectedHouses)
+			{
+				<a href="#" class="bg-info bg-opacity-10 fs-6 rounded-3 text-decoration-none" style="max-width:250px;">
+					<img src="https://via.placeholder.com/250" class="card-img-top" alt="..." style="border-radius:20px; padding:10px;" />
+					<div class="card-body">
+						<h5 class="card-title">@house.Adress</h5>
+						<ul class="list-group list-group-flush gap-1 py-2">
+							<li class="list-group-item rounded-3">
+								Rooms: @house.Rooms
+							</li>
+							<li class="list-group-item rounded-3">
+								Floor Area: @house.FloorArea m<sup>2</sup>
+							</li>
+						</ul>
+					</div>
+				</a>
+			}
+		}
+	</div>
+</div>
+
+@code {
+	[Parameter]
+	public string Class { get; set; }
+	[Parameter]
+	public List<HouseEntity> Houses { get; set; } = new();
+	[Parameter]
+	public EventCallback<string> Sort { get; set; }
+	[Parameter]
+	public string? Style { get; set; }
+
+	int perPage { get; set; } = 12;
+	int pageCount { get; set; } = 0;
+
+	int pageCountEnd => pageCountEndCalc < 0 ? 1 : pageCountEndCalc;
+	int pageCountEndCalc => Houses.Count - (perPage * (pageCount + 1));
+
+	string defaultBase = "bg-info bg-opacity-25 col-8 container float-end mx-auto rounded-3";
+	string TableHeader = "bg-transparent border-0 fw-bold m-0 p-0";
+
+	HouseEntity[] SelectedHouses
+	=> Houses.ToArray()[(pageCount * perPage)..^pageCountEnd];
+}

@@ -1,0 +1,100 @@
+﻿@using Simple_Showcase.Data
+@page "/"
+
+<PageTitle>Index</PageTitle>
+
+<div class="d-inline-flex">
+	<div class="d-inline float-start ms-2 my-5 ps-2 py-5">
+		<SidebarFilter @ref="Filter"
+					   Area="@GetFloorLimits()"
+					   FacilityTypes="null"
+					   Rooms="@GetRoomLimits()"
+					   Style="min-height:70vh;width:30vh;font-size:.8vw;"
+					   UpdateCallback="@FilterHouses" />
+	</div>
+
+	<FacilityTable @ref="@FacilityTable" Class="col col-auto float-end" Houses="Houses" Sort="Sort" />
+
+</div>
+@code {
+	SidebarFilter? Filter { get; set; }
+	FacilityTable? FacilityTable { get; set; }
+
+	List<HouseEntity> Houses { get; set; } = new();
+	List<HouseEntity> AllHouses { get; set; } = new();
+
+	List<int>? GetFloorLimits()
+	{
+		var list = AllHouses.OrderBy(x => x.FloorArea).ToList();
+
+		if (list.Count < 1) return null;
+
+		return new() { list[0].FloorArea, list[^1].FloorArea };
+	}
+	List<int>? GetRoomLimits()
+	{
+		var list = AllHouses.OrderBy(x => x.Rooms).ToList();
+
+		if (list.Count < 1) return null;
+
+		return new() { list[0].Rooms, list[^1].Rooms };
+	}
+
+	(string Property, bool Ascending) current = new("", true);
+
+	void Sort(string sortBy = "")
+	{
+		if (sortBy != string.Empty)
+			current = current.Property != sortBy ? (sortBy, true) : (sortBy, !current.Ascending);
+
+		else sortBy = current.Property;
+
+		switch (sortBy)
+		{
+			case "Adress":
+				if (current.Ascending)
+					Houses = Houses.OrderBy(x => x.Adress).ToList();
+				else Houses = Houses.OrderByDescending(x => x.Adress).ToList();
+				break;
+
+			case "Rooms":
+				if (current.Ascending)
+					Houses = Houses.OrderBy(x => x.Rooms).ToList();
+				else Houses = Houses.OrderByDescending(x => x.Rooms).ToList();
+				break;
+
+			case "Area":
+				if (current.Ascending)
+					Houses = Houses.OrderBy(x => x.FloorArea).ToList();
+				else Houses = Houses.OrderByDescending(x => x.FloorArea).ToList();
+				break;
+		}
+	}
+
+	public void FilterHouses()
+	{
+		Houses = AllHouses.Where(x =>
+			x.FloorArea >= Filter?.minArea &&
+			x.FloorArea <= Filter.maxArea &&
+			x.Rooms >= Filter.minRooms &&
+			x.Rooms <= Filter.maxRooms)
+			.ToList();
+
+		Sort();
+	}
+
+	public void UpdateHouses()
+	{
+		using var Context = new HousingContext();
+		AllHouses = Context.Houses.ToList();
+		Houses = AllHouses;
+		Filter?.Update();
+		Sort();
+	}
+
+	protected override void OnInitialized()
+	{
+		base.OnInitialized();
+		UpdateHouses();
+	}
+}

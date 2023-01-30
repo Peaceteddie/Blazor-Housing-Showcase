@@ -1,0 +1,211 @@
+﻿@page "/editor"
+@using Simple_Showcase.Data;
+@using Microsoft.EntityFrameworkCore
+@using System.Text.RegularExpressions;
+@using System.Collections.ObjectModel;
+
+<PageTitle>Editor</PageTitle>
+
+<h1 class="p-5">Database Editor</h1>
+
+<div class="d-inline-flex">
+	<SidebarFilter @ref="Filter"
+				   Area="@GetFloorLimits()"
+				   FacilityTypes="@FacilityTypes"
+				   Rooms="@GetRoomLimits()"
+				   Style="min-height:70vh;width:30vh;font-size:.8vw;"
+				   UpdateCallback="@FilterHouses" />
+</div>
+
+<div class="bg-info bg-opacity-25 col-8 container float-end mx-auto rounded-3" style="min-width:50vh;">
+	<ul class="nav nav-pills justify-content-center gap-5 p-3">
+		<li class="nav-item">
+			<button class="btn btn-warning shadow-lg px-4 py-2"
+					@onclick='()=>AddRandomHouses()'>
+				Add Random Houses
+			</button>
+		</li>
+		<li class="nav-item">
+			<button class="btn btn-primary shadow-lg px-4 py-2"
+					@onclick="()=>AddHouseModal?.Open()">
+				Add House
+			</button>
+		</li>
+		<li class="nav-item">
+			<button class="btn btn-danger shadow-lg px-4 py-2"
+					@onclick="()=>DeleteAll()">
+				Delete All Houses
+			</button>
+		</li>
+	</ul>
+	<div class="container fs-5 mx-auto px-5">
+		<table class="table table-striped ">
+
+			@*Header*@
+			<thead>
+				<tr>
+					<th class="col"><button class="bg-transparent border-0 fw-bold m-0 p-0" @onclick='()=>Sort("Adress")'>Adress</button></th>
+					<th class="col-2"><button class="bg-transparent border-0 fw-bold m-0 p-0" @onclick='()=>Sort("Rooms")'>Rooms</button></th>
+					<th class="col-2"><button class="bg-transparent border-0 fw-bold m-0 p-0" @onclick='()=>Sort("Area")'>Area</button></th>
+					<th class="col-2">Count: @Houses.Count</th>
+				</tr>
+			</thead>
+
+			@*Body*@
+			<tbody>
+				@foreach (var house in Houses)
+				{
+					<tr>
+						<td>@house.Adress</td>
+						<td>@house.Rooms</td>
+						<td>@house.FloorArea</td>
+						<td>
+							<button class="btn btn-primary shadow-lg">
+								Edit
+							</button>
+							<button class="btn btn-danger shadow-lg"
+								@onclick="()=>DeleteHouse(house.HouseEntityId)">
+								<div class="oi oi-circle-x" />
+							</button>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<AddHouseModal @ref="AddHouseModal" />
+
+@code {
+	// Houses for the table
+	List<HouseEntity> Houses { get; set; } = new();
+	List<HouseEntity> AllHouses { get; set; } = new();
+
+	// Used in sorting
+	(string Property, bool Ascending) current = new("", true);
+
+	// Add house modal
+	AddHouseModal? AddHouseModal { get; set; }
+
+	// For updating when changes to houses occur
+	SidebarFilter? Filter { get; set; }
+
+	// Types of facilities (Filter)
+	List<(string Type, bool Selected)> FacilityTypes = new()
+	{
+		("House", false),
+		("Apartment", false),
+		("Parking", false),
+		("Storage", false)
+	};
+
+	// Limits to floor area (Filter)
+	List<int>? GetFloorLimits()
+	{
+		var list = AllHouses.OrderBy(x => x.FloorArea).ToList();
+
+		if (list.Count < 1) return null;
+
+		return new() { list[0].FloorArea, list[^1].FloorArea };
+	}
+
+	// Limits to the rooms (Filter)
+	List<int>? GetRoomLimits()
+	{
+		var list = AllHouses.OrderBy(x => x.Rooms).ToList();
+
+		if (list.Count < 1) return null;
+
+		return new() { list[0].Rooms, list[^1].Rooms };
+	}
+
+	// For the diagnostic listerner to call from when DB saves
+	public static Editor? instance { get; set; }
+
+	public void FilterHouses()
+	{
+		Houses = AllHouses.Where(x =>
+		x.FloorArea >= Filter?.minArea &&
+		x.FloorArea <= Filter.maxArea &&
+		x.Rooms >= Filter.minRooms &&
+		x.Rooms <= Filter.maxRooms)
+		.ToList();
+
+		Sort();
+	}
+
+	public void UpdateHouses()
+	{
+		using var Context = new HousingContext();
+		AllHouses = Context.Houses.ToList();
+		Houses = AllHouses;
+		Filter?.Update();
+		Sort();
+	}
+
+	void AddRandomHouses()
+	{
+		using var Context = new HousingContext();
+		Random R = new Random();
+		for (int i = 0; i < 1000; i++)
+		{
+			var rooms = R.Next(1, 8);
+			var area = rooms * R.Next(10, 20);
+			Context.AddHouse($"Fake street {Context.Houses.Count() + i}", rooms, area);
+		}
+		Context.SaveChanges();
+	}
+
+	void Sort(string sortBy = "")
+	{
+		if (sortBy != string.Empty)
+			current = current.Property != sortBy ? (sortBy, true) : (sortBy, !current.Ascending);
+
+		else sortBy = current.Property;
+
+		switch (sortBy)
+		{
+			case "Adress":
+				if (current.Ascending)
+					Houses = Houses.OrderBy(x => x.Adress).ToList();
+				else Houses = Houses.OrderByDescending(x => x.Adress).ToList();
+				break;
+
+			case "Rooms":
+				if (current.Ascending)
+					Houses = Houses.OrderBy(x => x.Rooms).ToList();
+				else Houses = Houses.OrderByDescending(x => x.Rooms).ToList();
+				break;
+
+			case "Area":
+				if (current.Ascending)
+					Houses = Houses.OrderBy(x => x.FloorArea).ToList();
+				else Houses = Houses.OrderByDescending(x => x.FloorArea).ToList();
+				break;
+		}
+	}
+
+	void DeleteHouse(int id)
+	{
+		using var Context = new HousingContext();
+		var house = Context.Houses.First(x => x.HouseEntityId == id);
+		Context.Remove(house);
+		Context.SaveChanges();
+	}
+
+	void DeleteAll()
+	{
+		using var Context = new HousingContext();
+		foreach (var house in Context.Houses)
+			Context.Remove(house);
+		Context.SaveChanges();
+	}
+
+	protected override void OnInitialized()
+	{
+		base.OnInitialized();
+		instance = this;
+		UpdateHouses();
+	}
+}

@@ -1,0 +1,239 @@
+﻿<div class="bg-black bg-opacity-10 container rounded-3 @Class" style="@Style">
+	<div class="d-flex justify-content-center">
+		<button class="btn btn-primary shadow">Reset filter</button>
+	</div>
+	<div class="border-dark border-bottom" />
+	<div class="bg-light bg-opacity-25 rounded-3 shadow">
+
+		<div class="container">
+			<label class="d-block fw-bolder">Facility Type:</label>
+			@if (FacilityTypes != null)
+			{
+				<ul class="list-unstyled">
+					@foreach (var f in FacilityTypes)
+					{
+						<li>
+							<label>
+								<input class="checkbox" type="checkbox" @oninput="(()=>{if(UpdateCallback.HasDelegate) UpdateCallback.InvokeAsync();})" />
+								@f.Type
+							</label>
+						</li>
+					}
+				</ul>
+			}
+		</div>
+
+		<div class="border-dark border-bottom " />
+
+		<div class="container">
+
+			@if (Rooms != null)
+			{
+				<div class="d-inline container">
+					<label class="fw-bold  ">Min Rooms: @minRooms</label>
+					<input class="w-100" type="range" min="@Rooms[0]" max="@maxRooms" @bind-value="minRooms" step="1" @oninput="((e)=>onMinRooms(e))" list="minMarkers" />
+					<datalist id="minMarkers" class="datalist">
+						@for (int i = Rooms[0]; i <= maxRooms; i++)
+						{
+							<option value="@i" label="@i"></option>
+						}
+					</datalist>
+
+					<label class="fw-bold">Max Rooms: @maxRooms</label>
+					<input class="w-100" type="range" min="@minRooms" max="@Rooms[^1]" @bind-value="maxRooms" step="1" @oninput="((e)=>onMaxRooms(e))" list="maxMarkers" />
+					<datalist id="maxMarkers" class="datalist">
+						@for (int i = minRooms; i <= Rooms[^1]; i++)
+						{
+							<option value="@i" label="@i"></option>
+						}
+					</datalist>
+				</div>
+			}
+
+		</div>
+
+		<div class="border-dark border-bottom " />
+
+		<div class="container">
+
+			@if (Area != null)
+			{
+				<div class="d-inline container">
+					<label class="fw-bold">Min Floor Area: @minArea</label>
+					<input class="w-100" type="range" min="@GetMinArea" max="@maxArea" @bind-value="@minArea" step="@GetAreaStep" @oninput="((e)=>onMinArea(e))" list="minAreaList" />
+					<datalist id="minAreaList" class="datalist">
+						@for (int i = GetMinArea; i <= maxArea; i += GetAreaStep)
+						{
+							<option label="@i" value="@i"></option>
+						}
+					</datalist>
+
+					<label class="fw-bold">Max Floor Area: @maxArea</label>
+					<input class="w-100" type="range" min="@minArea" max="@GetMaxArea" @bind-value="@maxArea" step="@GetAreaStep" @oninput="((e)=>onMaxArea(e))" list="maxAreaList" />
+					<datalist id="maxAreaList" class="datalist">
+						@for (int i = minArea; i <= GetMaxArea; i += GetAreaStep)
+						{
+							<option label="@i" value="@i"></option>
+						}
+					</datalist>
+				</div>
+			}
+
+		</div>
+
+	</div>
+</div>
+
+<style>
+	.checkbox {
+		--checksize: 15px;
+		height: var(--checksize);
+		width: var(--checksize);
+		vertical-align: central;
+	}
+
+	.datalist {
+		display: flex;
+		justify-content: space-between;
+	}
+</style>
+
+@code {
+	[Parameter]
+	public List<int>? Area { get; set; }
+
+	[Parameter]
+	public string? Class { get; set; }
+
+	[Parameter]
+	public List<(string Type, bool Selected)>? FacilityTypes { get; set; }
+
+	[Parameter]
+	public EventCallback UpdateCallback { get; set; }
+
+	[Parameter]
+	public List<int>? Rooms { get; set; }
+
+	[Parameter]
+	public string? Style { get; set; }
+
+	// To set default values when starting
+	// and when there has been a change to the results.
+	bool shouldUpdate { get; set; } = true;
+
+	#region Area section
+	public int minArea { get; set; } = 10;
+	public int maxArea { get; set; } = 10;
+
+	int GetMinArea => (int)(Math.Floor(Area[0] / 10f) * 10);
+	int GetMaxArea => (int)(Math.Ceiling(Area[^1] / 10f) * 10);
+
+	int GetAreaStep => (GetMaxArea - GetMinArea) / 5;
+
+	async Task onMinArea(ChangeEventArgs e)
+	{
+		if (int.TryParse(e.Value!.ToString(), out int value))
+		{
+			if (maxArea > value)
+				minArea = value;
+
+			else minArea = maxArea;
+		}
+
+		if (UpdateCallback.HasDelegate)
+			await UpdateCallback.InvokeAsync();
+
+		StateHasChanged();
+	}
+	async Task onMaxArea(ChangeEventArgs e)
+	{
+		if (int.TryParse(e.Value!.ToString(), out int value))
+		{
+			if (minArea < value)
+				maxArea = value;
+
+			else maxArea = minArea;
+		}
+
+		if (UpdateCallback.HasDelegate)
+			await UpdateCallback.InvokeAsync();
+
+		StateHasChanged();
+	}
+	#endregion
+
+	#region Room section
+	public int minRooms { get; set; } = 1;
+	public int maxRooms { get; set; } = 1;
+
+	async Task onMinRooms(ChangeEventArgs e)
+	{
+		if (int.TryParse(e.Value?.ToString(), out int value))
+		{
+			if (maxRooms > value)
+				minRooms = value;
+
+			else minRooms = maxRooms;
+		}
+
+		if (UpdateCallback.HasDelegate)
+			await UpdateCallback.InvokeAsync();
+
+		StateHasChanged();
+	}
+	async Task onMaxRooms(ChangeEventArgs e)
+	{
+		if (int.TryParse(e.Value?.ToString(), out int value))
+		{
+			if (minRooms < value)
+				maxRooms = value;
+
+			else maxRooms = minRooms;
+		}
+
+		if (UpdateCallback.HasDelegate)
+			await UpdateCallback.InvokeAsync();
+
+		StateHasChanged();
+	}
+	#endregion
+
+	public void Update()
+	{
+		shouldUpdate = true;
+	}
+
+	void SetInit()
+	{
+		if (Area != null)
+		{
+			minArea = GetMinArea;
+			maxArea = GetMaxArea;
+		}
+
+		if (Rooms != null)
+		{
+			minRooms = Rooms[0];
+			maxRooms = Rooms[^1];
+		}
+
+		shouldUpdate = false;
+		StateHasChanged();
+	}
+
+	protected override void OnInitialized()
+	{
+		base.OnInitialized();
+
+		if (shouldUpdate)
+			SetInit();
+	}
+
+	protected override void OnAfterRender(bool firstRender)
+	{
+		base.OnAfterRender(firstRender);
+
+		if (shouldUpdate)
+			SetInit();
+	}
+}
