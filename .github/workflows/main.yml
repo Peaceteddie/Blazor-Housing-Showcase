@@ -15,9 +15,5 @@ jobs:
     - name: Publish .NET Core Project
       run: dotnet publish "Simple Showcase.csproj" -c Release -o release --nologo
 
-    - name: Commit wwwroot to GitHub pages
-      uses: JamesIves/github-pages-deploy-action@3.7.1
-      with:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        BRANCH: gh-pages
-        FOLDER: release/wwwroot
+    - name: Deploy GitHub Pages site
+      uses: actions/deploy-pages@v1.2.3
